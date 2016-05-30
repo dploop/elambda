@@ -21,12 +21,14 @@
     return "[" + this.line + ":" + this.column + "] " + this.message;
   };
 
-  function EvaluationException(message) {
+  function EvaluationException(node, message, ctx) {
+    this.node = node;
     this.message = message;
+    this.ctx = new RuntimeContext(ctx);
   }
 
   EvaluationException.prototype.toString = function () {
-    return this.message;
+    return "[" + this.node.start.line + ":" + this.node.start.column + "] " + this.message;
   };
 
   Parser.prototype.parse = function () {
@@ -42,6 +44,7 @@
     if (this.index >= this.input.length) throw this.parserError("Unexpected EOF");
     this.consumeWs();
     var ch = this.input[this.index];
+    var markLoc = this.startMarkLoc();
     switch (ch) {
       case '(':
       {
@@ -53,7 +56,7 @@
           throw this.parserError("Expects ')'");
         }
         this.index++;
-        return ["Apply", a, b];
+        return markLoc(["Apply", a, b]);
       }
       case '\\':
       {
@@ -65,18 +68,34 @@
         }
         this.index++;
         var body = this.parseExpr();
-        return ["Lambda", name, body];
+        return markLoc(["Lambda", name, body]);
       }
       default:
         if ('0' <= ch && ch <= '9') {
           this.index++;
-          return ["Num", +ch];
+          return markLoc(["Num", +ch]);
         }
         if ('a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || '_' == ch) {
-          return ["Ident", this.consumeName()];
+          return markLoc(["Ident", this.consumeName()]);
         }
     }
-    throw this.parserError("Parse Error!");
+    throw this.parserError("Expects expression");
+  };
+
+  Parser.prototype.loc = function () {
+    return {
+      line: this.line,
+      column: this.index - this.lineStart
+    };
+  };
+
+  Parser.prototype.startMarkLoc = function () {
+    var start = this.loc();
+    return function (node) {
+      node.start = start;
+      node.end = this.loc();
+      return node;
+    }.bind(this);
   };
 
   Parser.prototype.consumeWs = function () {
@@ -152,25 +171,51 @@
     return this.bound["$" + name];
   };
 
+  function render(expr, bound) {
+    switch (expr[0]) {
+      case "Apply":
+        return "(" + render(expr[1]) + " " + render(expr[2]) + ")";
+      case "Lambda":
+        return "\\" + expr[1] + ". " + render(expr[2]);
+      case "Num":
+        return expr[1] + "";
+      case "Ident":
+        return expr[1];
+    }
+  }
 
   RuntimeContext.prototype.evaluate = function (expr) {
     switch (expr[0]) {
       case "Apply":
         this.counter[0]++;
         if (this.counter[0] > RuntimeContext.LIMIT) {
-          throw new EvaluationException("Time Limit Exceeded");
+          throw new EvaluationException(expr, "Time Limit Exceeded", this);
         }
         var v1 = this.evaluate(expr[1]);
         if (typeof v1 === "function") {
-          return v1(this.evaluate(expr[2]));
+          var arg = this.evaluate(expr[2]);
+          try {
+            return v1.call(this, arg);
+          } catch (e) {
+            e.node = e.node || expr[2];
+            throw e;
+          }
         }
-        throw new EvaluationException("Trying to call non-function");
+        throw new EvaluationException(expr, "Trying to call non-function", this);
       case "Lambda":
         return function (ctx, name, body) {
           ctx = new RuntimeContext(ctx);
-          return function (arg) {
+          var func = function (arg) {
             return ctx.evaluateWith(name, arg, body);
-          }
+          };
+          func.toString = function () {
+            var text = render(expr);
+            func.toString = function () {
+              return text;
+            };
+            return text;
+          };
+          return func;
         }(this, expr[1], expr[2]);
       case "Num":
         return bigInt(expr[1]);
@@ -178,7 +223,7 @@
         if ("$" + expr[1] in this.bound) {
           return this.bound["$" + expr[1]];
         } else {
-          throw new EvaluationException("Unbound name '" + expr[1] + "'");
+          throw new EvaluationException(expr, "Unbound name '" + expr[1] + "'", this);
         }
     }
   };
@@ -192,42 +237,91 @@
     }
   };
 
+  RuntimeContext.prototype.assertNumber = function (e) {
+    if (!bigInt.isInstance(e)) {
+      throw new EvaluationException(null, "TypeError: expecting number", this);
+    }
+  };
+
+  RuntimeContext.prototype.assertBool = function (e) {
+    if (typeof e !== 'boolean') {
+      throw new EvaluationException(null, "TypeError: expecting boolean", this);
+    }
+  };
+
+  RuntimeContext.prototype.assertFunc = function (e) {
+    if (typeof e !== 'function') {
+      throw new EvaluationException(null, "TypeError: expecting function", this);
+    }
+  };
+
   RuntimeContext.LIMIT = 500000;
 
   RuntimeContext.PREDEFINED = Object.create(null);
   RuntimeContext.PREDEFINED["$true"] = true;
   RuntimeContext.PREDEFINED["$false"] = false;
   RuntimeContext.PREDEFINED["$add"] = function (a) {
+    this.assertNumber(a);
     return function (b) {
+      this.assertNumber(b);
       return a.add(b);
     };
   };
+  RuntimeContext.PREDEFINED["$add"].toString = function () {
+    return "add";
+  };
   RuntimeContext.PREDEFINED["$sub"] = function (a) {
+    this.assertNumber(a);
     return function (b) {
+      this.assertNumber(b);
       return a.subtract(b);
     };
   };
+  RuntimeContext.PREDEFINED["$sub"].toString = function () {
+    return "sub";
+  };
   RuntimeContext.PREDEFINED["$mul"] = function (a) {
+    this.assertNumber(a);
     return function (b) {
+      this.assertNumber(b);
       return a.multiply(b);
     };
   };
+  RuntimeContext.PREDEFINED["$mul"].toString = function () {
+    return "mul";
+  };
   RuntimeContext.PREDEFINED["$div"] = function (a) {
+    this.assertNumber(a);
     return function (b) {
+      this.assertNumber(b);
       return a.divide(b);
     };
   };
+  RuntimeContext.PREDEFINED["$div"].toString = function () {
+    return "div";
+  };
   RuntimeContext.PREDEFINED["$less"] = function (a) {
+    this.assertNumber(a);
     return function (b) {
+      this.assertNumber(b);
       return a.lesser(b);
     };
   };
+  RuntimeContext.PREDEFINED["$less"].toString = function () {
+    return "less";
+  };
   RuntimeContext.PREDEFINED["$cond"] = function (a) {
+    this.assertBool(a);
     return function (b) {
+      this.assertFunc(b);
       return function (c) {
+        this.assertFunc(b);
         return a ? b(false) : c(false);
       };
     };
+  };
+  RuntimeContext.PREDEFINED["$cond"].toString = function () {
+    return "cond";
   };
 
   global.elambda = {
