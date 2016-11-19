@@ -72,8 +72,7 @@
       }
       default:
         if ('0' <= ch && ch <= '9') {
-          this.index++;
-          return markLoc(["Num", +ch]);
+          return markLoc(["Num", this.consumeNum()]);
         }
         if ('a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || '_' == ch) {
           return markLoc(["Ident", this.consumeName()]);
@@ -119,6 +118,21 @@
         break;
       }
     }
+  };
+
+  Parser.prototype.consumeNum = function () {
+    this.consumeWs();
+    var sb = "", ch;
+    while (this.index < this.input.length) {
+      ch = this.input[this.index];
+      if ('0' <= ch && ch <= '9') {
+        sb += ch;
+        this.index++;
+      } else {
+        break;
+      }
+    }
+    return bigInt(sb);
   };
 
   Parser.prototype.consumeName = function () {
@@ -218,7 +232,7 @@
           return func;
         }(this, expr[1], expr[2]);
       case "Num":
-        return bigInt(expr[1]);
+        return expr[1];
       case "Ident":
         if ("$" + expr[1] in this.bound) {
           return this.bound["$" + expr[1]];
@@ -261,62 +275,119 @@
   RuntimeContext.PREDEFINED["$true"] = true;
   RuntimeContext.PREDEFINED["$false"] = false;
   RuntimeContext.PREDEFINED["$add"] = function (a) {
-    this.assertNumber(a);
-    return function (b) {
-      this.assertNumber(b);
-      return a.add(b);
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.add(b);
     };
   };
   RuntimeContext.PREDEFINED["$add"].toString = function () {
     return "add";
   };
   RuntimeContext.PREDEFINED["$sub"] = function (a) {
-    this.assertNumber(a);
-    return function (b) {
-      this.assertNumber(b);
-      return a.subtract(b);
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.subtract(b);
     };
   };
   RuntimeContext.PREDEFINED["$sub"].toString = function () {
     return "sub";
   };
   RuntimeContext.PREDEFINED["$mul"] = function (a) {
-    this.assertNumber(a);
-    return function (b) {
-      this.assertNumber(b);
-      return a.multiply(b);
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.multiply(b);
     };
   };
   RuntimeContext.PREDEFINED["$mul"].toString = function () {
     return "mul";
   };
   RuntimeContext.PREDEFINED["$div"] = function (a) {
-    this.assertNumber(a);
-    return function (b) {
-      this.assertNumber(b);
-      return a.divide(b);
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.divide(b);
     };
   };
   RuntimeContext.PREDEFINED["$div"].toString = function () {
     return "div";
   };
-  RuntimeContext.PREDEFINED["$less"] = function (a) {
-    this.assertNumber(a);
-    return function (b) {
-      this.assertNumber(b);
-      return a.lesser(b);
+  RuntimeContext.PREDEFINED["$rem"] = function (a) {
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.remainder(b);
     };
   };
-  RuntimeContext.PREDEFINED["$less"].toString = function () {
-    return "less";
+  RuntimeContext.PREDEFINED["$rem"].toString = function () {
+    return "rem";
+  };
+  RuntimeContext.PREDEFINED["$lt"] = function (a) {
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.lesser(b);
+    };
+  };
+  RuntimeContext.PREDEFINED["$lt"].toString = function () {
+    return "lt";
+  };
+  RuntimeContext.PREDEFINED["$lte"] = function (a) {
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.lesserOrEquals(b);
+    };
+  };
+  RuntimeContext.PREDEFINED["$lte"].toString = function () {
+    return "lte";
+  };
+  RuntimeContext.PREDEFINED["$gt"] = function (a) {
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.greater(b);
+    };
+  };
+  RuntimeContext.PREDEFINED["$gt"].toString = function () {
+    return "gt";
+  };
+  RuntimeContext.PREDEFINED["$gte"] = function (a) {
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.greaterOrEquals(b);
+    };
+  };
+  RuntimeContext.PREDEFINED["$gte"].toString = function () {
+    return "gte";
+  };
+  RuntimeContext.PREDEFINED["$eq"] = function (a) {
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.equals(b);
+    };
+  };
+  RuntimeContext.PREDEFINED["$eq"].toString = function () {
+    return "eq";
+  };
+  RuntimeContext.PREDEFINED["$neq"] = function (a) {
+    this.assertNumber(a); return function (b) {
+      this.assertNumber(b); return a.notEquals(b);
+    };
+  };
+  RuntimeContext.PREDEFINED["$neq"].toString = function () {
+    return "neq";
+  };
+  RuntimeContext.PREDEFINED["$and"] = function (a) {
+    this.assertBool(a); return function (b) {
+      this.assertBool(b); return (a && b);
+    };
+  };
+  RuntimeContext.PREDEFINED["$and"].toString = function () {
+    return "and";
+  };
+  RuntimeContext.PREDEFINED["$or"] = function (a) {
+    this.assertBool(a); return function (b) {
+      this.assertBool(b); return (a || b);
+    };
+  };
+  RuntimeContext.PREDEFINED["$or"].toString = function () {
+    return "or";
+  };
+  RuntimeContext.PREDEFINED["$not"] = function (a) {
+    this.assertBool(a); return (!a);
+  };
+  RuntimeContext.PREDEFINED["$not"].toString = function () {
+    return "not";
   };
   RuntimeContext.PREDEFINED["$cond"] = function (a) {
-    this.assertBool(a);
-    return function (b) {
-      this.assertFunc(b);
-      return function (c) {
-        this.assertFunc(b);
-        return a ? b(false) : c(false);
+    this.assertBool(a); return function (b) {
+      this.assertFunc(b); return function (c) {
+        this.assertFunc(b); return a ? b(false) : c(false);
       };
     };
   };
