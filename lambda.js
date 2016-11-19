@@ -324,7 +324,7 @@
     return "cond";
   };
 
-  global.elambda = {
+  global.lambda = {
     Parser: Parser,
     RuntimeContext: RuntimeContext
   };

@@ -3,8 +3,8 @@ $(function () {
     document.getElementById('main-editor').appendChild(elt);
   }, {
     lineNumbers: true,
-    value: localStorage.getItem("elambda-main-editor-content") || "",
-    mode:  "elambda",
+    value: localStorage.getItem("lambda-main-editor-content") || "",
+    mode:  "lambda",
     autoCloseBrackets: true,
     matchBrackets: true,
     highlightSelectionMatches: true,
@@ -16,7 +16,7 @@ $(function () {
   var editorEventThrottler = null;
 
   function update(e) {
-    localStorage.setItem("elambda-main-editor-content", editor.getValue());
+    localStorage.setItem("lambda-main-editor-content", editor.getValue());
     if (editorEventThrottler) {
       clearTimeout(editorEventThrottler);
     }
@@ -27,8 +27,8 @@ $(function () {
 
   function compile() {
     try {
-      var expr = new elambda.Parser(editor.getValue()).parse();
-      var runtime = new elambda.RuntimeContext();
+      var expr = new lambda.Parser(editor.getValue()).parse();
+      var runtime = new lambda.RuntimeContext();
       document.getElementById('result').textContent = runtime.evaluate(expr).toString();
       document.getElementById('error-message').textContent = '';
       document.getElementById('count').textContent = runtime.counter[0];

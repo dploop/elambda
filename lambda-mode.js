@@ -2,7 +2,7 @@
  * JavaScript:
  */
 
-CodeMirror.defineMode("elambda", function (_config, modeConfig) {
+CodeMirror.defineMode("lambda", function (_config, modeConfig) {
   function switchState(source, setState, f) {
     setState(f);
     return f(source, setState);
@@ -74,10 +74,10 @@ CodeMirror.defineMode("elambda", function (_config, modeConfig) {
 });
 
 
-CodeMirror.registerHelper("lint", "elambda", function(text) {
+CodeMirror.registerHelper("lint", "lambda", function(text) {
   var found = [];
-  if (!window.elambda) return found;
-  var parser = new elambda.Parser(text);
+  if (!window.lambda) return found;
+  var parser = new lambda.Parser(text);
 
   try {
     var expr = parser.parse()
@@ -91,13 +91,13 @@ CodeMirror.registerHelper("lint", "elambda", function(text) {
   }
 
   try {
-    new elambda.RuntimeContext().evaluate(expr);
+    new lambda.RuntimeContext().evaluate(expr);
   } catch (e) {
     found.push({
       from: CodeMirror.Pos(e.node.start.line, e.node.start.column),
       to: CodeMirror.Pos(e.node.end.line, e.node.end.column),
       message: e.message + "\nBound values:\n" + Object.keys(e.ctx.bound).filter(function (key) {
-        return !{}.hasOwnProperty.call(elambda.RuntimeContext.PREDEFINED, key);
+        return !{}.hasOwnProperty.call(lambda.RuntimeContext.PREDEFINED, key);
       }).map(function (key) {
         return key.slice(1) + " = " + e.ctx.bound[key].toString();
       }).join("\n")

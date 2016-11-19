@@ -1,2 +1,2 @@
-#  A Lambda Interpreter
+#  An Online Lambda Interpreter
 
