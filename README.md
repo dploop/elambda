@@ -16,7 +16,7 @@
 <application> ::= (<expression> <expression>)
 ```
 
-当然你可能会问<name>怎么定义的呢，好吧其实这只是个无关紧要的问题，更为详细的关于lambda演算的资料可以参考 [Lambda calculus](https://en.wikipedia.org/wiki/Lambda_calculus)。等你搞清楚 `α-conversion`、`β-reduction`、`η-conversion`、`currying`
+当然你可能会问`<name>`怎么定义的呢，好吧其实这只是个无关紧要的问题，更为详细的关于lambda演算的资料可以参考 [Lambda calculus](https://en.wikipedia.org/wiki/Lambda_calculus)。等你搞清楚 `α-conversion`、`β-reduction`、`η-conversion`、`currying`
 、`call-by-name`、`call-by-value` 这些概念后，你也可以自豪地向别人吹逼说自己"精通"lambda演算了。
 
 不过在吹逼之前可不可以先帮我解决一个问题？
