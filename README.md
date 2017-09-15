@@ -37,12 +37,10 @@
 ```
 (\n.((mul n) n) 8)
 ```
-
 样例二: 判断一个数是不是小于5，如果小于5输出1，否则输出0，样例返回 `0`
 ```
 (\n.(((cond ((lt n) 5)) \_.1) \_.0) 6)
 ```
-
 样例三: 计算一个数的阶乘，样例返回 `362880`
 ```
 ((\f.(\u.(u u) \x.(f \v.((x x) v)))
@@ -51,6 +49,4 @@
     \_.((mul (factorial ((sub n) 1))) n)
 )) 9)
 ```
-
-现在dploop需要利用该语言写一个`fibonacci`函数，希望"精通"函数式编程的你能够帮他完成。为了方便你的调试，这里提供一个简易的lambda在线编辑器: [An Online Lambda Interpreter](https://dploop.github.io/lambda/editor.html)。
-
+现在dploop需要利用该语言写一个`fibonacci`函数，希望"精通"函数式编程的你能够帮他完成。为了方便你的调试，这里提供一个简易的lambda在线编辑器: [An Online Lambda Interpreter](https://dploop.github.io/lambda-qlcoder/editor.html)。
